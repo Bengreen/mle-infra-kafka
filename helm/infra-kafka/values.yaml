@@ -1,0 +1,69 @@
+# Initial values configs
+---
+kafka:
+  # TODO: fullnameOverried creates singletons. This will be deprecated in future
+  fullnameOverride: infra-kafka
+  external:
+    enabled: false
+    type: ""
+  zookeeper:
+    # The following code is required to insert the config update into Zookeeper (zoo.cfg https://istio.io/latest/faq/applications/#zookeeper). There is an upstream PR to replace this but has went stale (https://github.com/helm/charts/pull/17258)
+    command:
+    - /bin/bash
+    - -xec
+    - echo "quorumListenOnAllIPs=true" >> /conf/zoo.cfg && /config-scripts/run
+    # TODO: fullnameOverried creates singletons. This will be deprecated in future
+    fullnameOverride: infra-zookeeper
+    exporters:
+      jmx:
+        enabled: true
+      zookeeper:
+        enabled: true
+    prometheus:
+      serviceMonitor:
+        enabled: true
+  replicas: 3
+  persistence:
+  prometheus:
+    jmx:
+      enabled: true
+    kafka:
+      enabled: true
+      nodeSelector: {}
+    operator:
+      enabled: true
+      serviceMonitor:
+        releaseNamespace: true
+  podDisruptionBudget:
+    maxUnavailable: 1
+  configurationOverrides:
+    "auto.create.topics.enable": false
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - kafka
+        topologyKey: "kubernetes.io/hostname"
+    podAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+       - weight: 50
+         podAffinityTerm:
+           labelSelector:
+             matchExpressions:
+             - key: app
+               operator: In
+               values:
+                 - zookeeper
+           topologyKey: "kubernetes.io/hostname"
+
+
+kafkaTopics:
+  backoffLimit: 6
+  image: "confluentinc/cp-kafka"
+  imageTag: "5.0.1"
+  resource: {}
+  topics: []
